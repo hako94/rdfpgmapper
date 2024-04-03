@@ -1,20 +1,87 @@
 package rdfpgmapper;
 
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.RDFFormat;
-import rdfpgmapper.rdf.JenaClient;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import rdfpgmapper.mapper.MapperApi;
+
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
 
-        if (args.length < 2) {
-            System.out.println("Eingabe nur im Format: java Main <path-to-input-rdf-file> <input-rdf-format> <output-file-path>");
-            System.exit(1);
+        MapperApi mapperApi = new MapperApi();
+
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.println("\nWas möchten Sie tun?");
+                System.out.println("1 - RDF-Graph importieren");
+                System.out.println("2 - RDF-Graph exportieren");
+                System.out.println("3 - Neo4j-Datenbank leeren");
+                System.out.println("4 - Beenden");
+
+                System.out.print("Wählen Sie eine Option: ");
+
+                int option = scanner.nextInt();
+                scanner.nextLine();
+
+                switch (option) {
+                    case 1:
+                        Pair<String, String> input = choosePathAndFormat(scanner);
+
+                        if(input == null) {
+                            break;
+                        }
+
+                        mapperApi.importRdf(input.getLeft(), input.getRight());
+
+                        System.out.println("RDF-Daten wurden importiert.");
+
+                        break;
+                    case 2:
+                        Pair<String, String> output = choosePathAndFormat(scanner);
+
+                        if(output == null) {
+                            break;
+                        }
+
+                        mapperApi.exportRdf(output.getLeft(), output.getRight());
+
+                        System.out.println("RDF-Daten wurden exportiert.");
+
+                        break;
+                    case 3:
+                        mapperApi.clearDatabase();
+                        System.out.println("Alle Daten wurden gelöscht.");
+                        return;
+                    case 4:
+                        System.out.println("Programm beendet.");
+                        return;
+                    default:
+                        System.out.println("Ungültige Option. Bitte wählen Sie 1, 2 oder 3.");
+                        break;
+                }
+            }
+        } finally {
+
+            mapperApi.close();
+
         }
 
-        String filePath = args[0];
-        String format = args[1].toUpperCase();
-        String outputFilePath = args[2];
+
+    }
+
+    private static Pair<String, String> choosePathAndFormat(Scanner scanner) {
+
+        System.out.println("Geben Sie den Pfad und das Eingabeformat folgendermaßen an: <pfad>,<format>");
+
+        String[] in = scanner.nextLine().split(",");
+        if (in.length < 2) {
+            System.out.println("Eingabe nur im Format: java Main <pfad>,<format>");
+            return null;
+        }
+
+        String filePath = in[0];
+        String format = in[1].toUpperCase();
 
         switch (format) {
             case "TTL":
@@ -25,16 +92,10 @@ public class Main {
                 break;
             default:
                 System.out.println("Format nicht unterstützt: " + format);
-                System.exit(2);
+                return null;
         }
 
-        JenaClient jenaClient = new JenaClient();
-        Model model = jenaClient.parseRDFFile(filePath, format);
-
-        RDFFormat outputFormat = RDFFormat.TURTLE_PRETTY;
-
-        jenaClient.writeModel(model, outputFilePath, outputFormat);
-
+        return new ImmutablePair<>(filePath, format);
     }
 
 }

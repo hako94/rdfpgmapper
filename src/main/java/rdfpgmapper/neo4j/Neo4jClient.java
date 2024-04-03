@@ -19,7 +19,7 @@ public class Neo4jClient implements AutoCloseable{
         driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
     }
 
-    public void writeToNeo4j(List<String> cypherStatements) {
+/*    public void writeToNeo4j(List<String> cypherStatements) {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
                 for (String statement : cypherStatements) {
@@ -29,6 +29,16 @@ public class Neo4jClient implements AutoCloseable{
             } catch (Exception e) {
                 System.err.println("Ein Fehler ist aufgetreten: " + e.getMessage());
             }
+        }
+    }*/
+
+    public void writeToNeo4j(List<String> cypherStatements) {
+        try (Session session = driver.session()) {
+            for (String statement : cypherStatements) {
+                session.run(statement);
+            }
+        } catch (Exception e) {
+            System.err.println("Ein Fehler ist aufgetreten: " + e.getMessage());
         }
     }
 
