@@ -26,7 +26,7 @@ public class JenaClient {
     public void writeModel(Model model, String outputFilePath, RDFFormat format) {
         try (OutputStream out = new FileOutputStream(outputFilePath)) {
             RDFDataMgr.write(out, model, format);
-            System.out.println("RDF data successfully written to " + outputFilePath);
+            System.out.println("RDF erfolgreich geschrieben: " + outputFilePath);
         } catch (Exception e) {
             e.printStackTrace();
         }

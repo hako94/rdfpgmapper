@@ -7,12 +7,20 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import rdfpgmapper.mapper.Mapper;
+import rdfpgmapper.neo4j.Neo4jClient;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class RptMapperImpl implements Mapper {
+public class RptGeneric implements Mapper {
+
+    private final Neo4jClient neo4jClient;
+
+    public RptGeneric(Neo4jClient client) {
+        this.neo4jClient = client;
+    }
+
     @Override
     public List<String> mapRdfToPgSchema(Model model) {
         List<String> cypher = new ArrayList<>();

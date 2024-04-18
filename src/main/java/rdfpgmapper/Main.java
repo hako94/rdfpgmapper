@@ -9,61 +9,76 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
 
-        MapperApi mapperApi = new MapperApi();
-
         try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Mit welcher Mapping Methode möchten Sie arbeiten??");
+
+            System.out.println("1 - RPT-Simple");
+            System.out.println("2 - RPT-Generic");
+            System.out.println("3 - PGT-Simple");
+            System.out.println("4 - PGT-Complete");
+
+            int option = scanner.nextInt();
+            scanner.nextLine();
+
+            MapperApi mapperApi = new MapperApi(option);
+
             while (true) {
-                System.out.println("\nWas möchten Sie tun?");
-                System.out.println("1 - RDF-Graph importieren");
-                System.out.println("2 - RDF-Graph exportieren");
-                System.out.println("3 - Neo4j-Datenbank leeren");
-                System.out.println("4 - Beenden");
+                try {
+                    System.out.println("\nWas möchten Sie tun?");
+                    System.out.println("1 - RDF-Graph importieren");
+                    System.out.println("2 - RDF-Graph exportieren");
+                    System.out.println("3 - Neo4j-Datenbank leeren");
+                    System.out.println("4 - Beenden");
 
-                System.out.print("Wählen Sie eine Option: ");
+                    System.out.print("Wählen Sie eine Option: ");
 
-                int option = scanner.nextInt();
-                scanner.nextLine();
+                    option = scanner.nextInt();
+                    scanner.nextLine();
 
-                switch (option) {
-                    case 1:
-                        Pair<String, String> input = choosePathAndFormat(scanner);
+                    switch (option) {
+                        case 1:
 
-                        if(input == null) {
+                            Pair<String, String> input = choosePathAndFormat(scanner);
+
+                            if (input == null) {
+                                break;
+                            }
+
+                            mapperApi.importRdf(input.getLeft(), input.getRight());
+
+                            System.out.println("RDF-Daten wurden importiert.");
+
                             break;
-                        }
+                        case 2:
+                            Pair<String, String> output = choosePathAndFormat(scanner);
 
-                        mapperApi.importRdf(input.getLeft(), input.getRight());
+                            if (output == null) {
+                                break;
+                            }
 
-                        System.out.println("RDF-Daten wurden importiert.");
+                            mapperApi.exportRdf(output.getLeft(), output.getRight());
 
-                        break;
-                    case 2:
-                        Pair<String, String> output = choosePathAndFormat(scanner);
+                            System.out.println("RDF-Daten wurden exportiert.");
 
-                        if(output == null) {
                             break;
-                        }
+                        case 3:
+                            mapperApi.clearDatabase();
+                            System.out.println("Alle Daten wurden gelöscht.");
 
-                        mapperApi.exportRdf(output.getLeft(), output.getRight());
+                            break;
+                        case 4:
+                            System.out.println("Programm beendet.");
+                            return;
+                        default:
+                            System.out.println("Ungültige Option. Bitte wählen Sie 1, 2 oder 3.");
+                            break;
+                    }
+                } finally {
 
-                        System.out.println("RDF-Daten wurden exportiert.");
+                    mapperApi.close();
 
-                        break;
-                    case 3:
-                        mapperApi.clearDatabase();
-                        System.out.println("Alle Daten wurden gelöscht.");
-                        return;
-                    case 4:
-                        System.out.println("Programm beendet.");
-                        return;
-                    default:
-                        System.out.println("Ungültige Option. Bitte wählen Sie 1, 2 oder 3.");
-                        break;
                 }
             }
-        } finally {
-
-            mapperApi.close();
 
         }
 
@@ -72,7 +87,7 @@ public class Main {
 
     private static Pair<String, String> choosePathAndFormat(Scanner scanner) {
 
-        System.out.println("Geben Sie den Pfad und das Eingabeformat folgendermaßen an: <pfad>,<format>");
+        System.out.println("Geben Sie den Pfad und das gewünschte Format folgendermaßen an: <pfad>,<format>");
 
         String[] in = scanner.nextLine().split(",");
         if (in.length < 2) {
