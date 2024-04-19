@@ -1,17 +1,21 @@
 package rdfpgmapper.mapper.rpt;
 
+import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
+import org.neo4j.driver.Record;
 import rdfpgmapper.mapper.Mapper;
 import rdfpgmapper.neo4j.Neo4jClient;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 public class RptGeneric implements Mapper {
 
@@ -66,7 +70,7 @@ public class RptGeneric implements Mapper {
             if (object.isURIResource()) {
                 objectArr = mergeResource((Resource) object, 'b');
             } else if (object.isAnon()) {
-                objectArr = mergeBlankNode((Resource) object,'b');
+                objectArr = mergeBlankNode((Resource) object, 'b');
             } else {
                 objectArr = mergeLiteral((Literal) object);
             }
@@ -95,7 +99,7 @@ public class RptGeneric implements Mapper {
 
     private String[] mergeBlankNode(Resource resource, char postfix) {
         String id = resource.getId().toString().replace("'", "_");
-        return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '" + id + "'})"};
+        return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + id + "'})"};
     }
 
     private String[] mergeLiteral(Literal literal) {
@@ -115,6 +119,54 @@ public class RptGeneric implements Mapper {
 
     @Override
     public Model mapPgToRdf() {
-        return null;
+        Model model = ModelFactory.createDefaultModel();
+
+        List<Record> results = new ArrayList<>();
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:Resource)-[r:ObjectProperty]->(m:Resource) RETURN n.iri AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:Resource)-[r:ObjectProperty]->(m:BlankNode) RETURN n.iri AS subjectName, r.type AS predicateUri, m.id AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:Resource)-[r:DatatypeProperty]->(m:Literal) RETURN n.iri AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:BlankNode)-[r:ObjectProperty]->(m:Resource) RETURN n.id AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:BlankNode)-[r:ObjectProperty]->(m:BlankNode) RETURN n.id AS subjectName, r.type AS predicateUri, m.id AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j(
+                "MATCH (n:BlankNode)-[r:DatatypeProperty]->(m:Literal) RETURN n.id AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
+
+        for (Record result : results) {
+            String subjectName = result.get("subjectName").asString();
+            String predicateUri = result.get("predicateUri").asString();
+            String objectName = result.get("objectName").asString();
+
+            Resource subject;
+            Property predicate = model.createProperty(predicateUri);
+            RDFNode object;
+
+            if (subjectName.contains("_:")) {
+                String blankNodeId = subjectName.replace("_:", "");
+                subject = model.createResource(new AnonId(blankNodeId));
+            } else {
+                subject = model.createResource(subjectName);
+            }
+
+            if (Objects.equals(objectName, "null")) {
+                String literalValue = result.get("literalValue").asString();
+                String literalType = result.get("literalType").asString();
+                object = model.createTypedLiteral(literalValue, literalType);
+            } else {
+                if (objectName.contains("_:")) {
+                    String blankNodeId = objectName.replace("_:", "");
+                    object = model.createResource(new AnonId(blankNodeId));
+                } else {
+                    object = model.createResource(objectName);
+                }
+            }
+
+            model.add(subject, predicate, object);
+        }
+
+        return model;
     }
 }

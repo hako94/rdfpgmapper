@@ -13,10 +13,16 @@ import java.util.List;
 
 public class Neo4jClient implements AutoCloseable{
 
-    private final Driver driver;
+    private Driver driver;
+    private final String databaseUri;
+    private final String databaseUser;
+    private final String databasePassword;
+
 
     public Neo4jClient(String uri, String user, String password) {
-        driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
+        databaseUri =uri;
+        databaseUser = user;
+        databasePassword = password;
     }
 
 /*    public void writeToNeo4j(List<String> cypherStatements) {
@@ -33,6 +39,7 @@ public class Neo4jClient implements AutoCloseable{
     }*/
 
     public void writeToNeo4j(List<String> cypherStatements) {
+            driver = GraphDatabase.driver(databaseUri, AuthTokens.basic(databaseUser, databasePassword));
         try (Session session = driver.session()) {
             for (String statement : cypherStatements) {
                 session.run(statement);
@@ -43,6 +50,8 @@ public class Neo4jClient implements AutoCloseable{
     }
 
     public List<Record> readFromNeo4j(String cypherQuery) {
+            driver = GraphDatabase.driver(databaseUri, AuthTokens.basic(databaseUser, databasePassword));
+
         List<Record> records = new ArrayList<>();
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
