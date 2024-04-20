@@ -56,7 +56,7 @@ public class MapperApi {
         Model model = mapper.mapPgToRdf();
 
         RDFFormat outputFormat = switch (format) {
-            case "TTL" -> RDFFormat.TTL;
+            case "TTL" -> RDFFormat.TURTLE;
             case "RDF/XML" -> RDFFormat.RDFXML;
             case "N-TRIPLE" -> RDFFormat.NTRIPLES;
             default -> RDFFormat.TURTLE_PRETTY;
