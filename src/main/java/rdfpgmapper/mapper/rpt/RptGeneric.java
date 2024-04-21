@@ -41,6 +41,20 @@ public class RptGeneric implements Mapper {
         cypher.add("CREATE CONSTRAINT FOR (op:ObjectProperty) REQUIRE op.type IS UNIQUE;");
         cypher.add("CREATE CONSTRAINT FOR (dp:DatatypeProperty) REQUIRE dp.type IS UNIQUE;");
 
+        cypher.add("CALL apoc.trigger.add('validate_object_domain_range', " +
+                "'MATCH (n)-[r:DatatypeProperty]->(m) " +
+                "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
+                "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Resource OR rangeNode:BlankNode) " +
+                "CALL apoc.log.info('ObjectProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
+                "DELETE r', {phase:'before'});");
+
+        cypher.add("CALL apoc.trigger.add('validate_literal_domain_range', " +
+                "'MATCH (n)-[r:ObjectProperty]->(m) " +
+                "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
+                "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Literal) " +
+                "CALL apoc.log.info('DatatypeProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
+                "DELETE r', {phase:'before'});");
+
 /*        cypher.add("CREATE INDEX FOR (r:Resource) ON r.iri");
         cypher.add("CREATE INDEX FOR (b:BlankNode) ON b.id");
         cypher.add("CREATE INDEX FOR (l:Literal) ON l.value");*/
