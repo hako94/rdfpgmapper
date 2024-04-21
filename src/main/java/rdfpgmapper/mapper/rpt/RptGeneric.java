@@ -1,6 +1,5 @@
 package rdfpgmapper.mapper.rpt;
 
-import org.apache.jena.assembler.Mode;
 import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
@@ -76,14 +75,26 @@ public class RptGeneric implements Mapper {
 
             String[] subjectArr;
             Resource subject = statement.getSubject();
-            if (subject.isURIResource()) {
-                subjectArr = mergeResource(subject, 'a', model);
+            Property predicate = statement.getPredicate();
+            RDFNode object = statement.getObject();
+
+            String propertyName = Helper.getPrefixedName(predicate.getURI(), model);
+
+            if (propertyName.equals("rdf_type")) {
+                if (subject.isURIResource()) {
+                    subjectArr = mergeResourceType(subject, 'a', (Resource) object, model);
+                } else {
+                    subjectArr = mergeBlankNodeType(subject, 'a', (Resource) object, model);
+                }
             } else {
-                subjectArr = mergeBlankNode(subject, 'a');
+                if (subject.isURIResource()) {
+                    subjectArr = mergeResource(subject, 'a', model);
+                } else {
+                    subjectArr = mergeBlankNode(subject, 'a');
+                }
             }
 
             String[] objectArr;
-            RDFNode object = statement.getObject();
             if (object.isURIResource()) {
                 objectArr = mergeResource((Resource) object, 'b', model);
             } else if (object.isAnon()) {
@@ -92,7 +103,6 @@ public class RptGeneric implements Mapper {
                 objectArr = mergeLiteral((Literal) object, model);
             }
 
-            Property predicate = statement.getPredicate();
 
             if (object.isLiteral()) {
                 cypher.add(subjectArr[1] + "\n" +
@@ -108,6 +118,19 @@ public class RptGeneric implements Mapper {
         return Helper.addNodeForNsPrefixUriDeclaration(model, cypher);
     }
 
+    private String[] mergeResourceType(Resource resource, char postfix, Resource type, Model model) {
+        String iri = Helper.getPrefixedName(resource.getURI(), model);
+        String typeString = Helper.getPrefixedName(type.getURI(), model);
+        return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Resource {iri: '" + iri + "'}) " +
+                "SET res" + postfix + ".type = '" + typeString + "'"};
+    }
+
+    private String[] mergeBlankNodeType(Resource resource, char postfix, Resource type, Model model) {
+        String id = resource.getId().toString().replace("'", "_");
+        String typeString = Helper.getPrefixedName(type.getURI(), model);
+        return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + id + "'}) " +
+                "SET b" + postfix + ".type = '" + typeString + "'"};
+    }
 
     private String[] mergeResource(Resource resource, char postfix, Model model) {
         String iri = Helper.getPrefixedName(resource.getURI(), model);
