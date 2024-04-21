@@ -33,6 +33,22 @@ public class Helper {
         return name;
     }
 
+    public static List<String> addNodeForNsPrefixUriDeclaration(Model model, List<String> cypher) {
+        if (!model.getNsPrefixMap().isEmpty()) {
+            StringBuilder prefixUri = new StringBuilder("MERGE (n:PrefixUriNode) " +
+                    "SET ");
+
+            for (Map.Entry<String, String> entry : model.getNsPrefixMap().entrySet()) {
+                prefixUri.append("n.").append(entry.getKey()).append("='").append(entry.getValue()).append("',");
+            }
+
+            prefixUri.deleteCharAt(prefixUri.length() - 1);
+            cypher.add(prefixUri.toString());
+        }
+
+        return cypher;
+    }
+
     public static List<String> getClassHierarchy(Resource type, Model model) {
         List<String> hierarchy = new ArrayList<>();
         String typeUri = type.getURI();
