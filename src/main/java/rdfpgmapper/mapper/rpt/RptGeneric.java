@@ -1,5 +1,6 @@
 package rdfpgmapper.mapper.rpt;
 
+import org.apache.jena.assembler.Mode;
 import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
@@ -11,10 +12,12 @@ import org.apache.jena.rdf.model.Statement;
 import org.neo4j.driver.Record;
 import rdfpgmapper.mapper.Mapper;
 import rdfpgmapper.neo4j.Neo4jClient;
+import rdfpgmapper.utils.Helper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class RptGeneric implements Mapper {
@@ -45,14 +48,14 @@ public class RptGeneric implements Mapper {
                 "'MATCH (n)-[r:DatatypeProperty]->(m) " +
                 "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
                 "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Resource OR rangeNode:BlankNode) " +
-                "CALL apoc.log.info('ObjectProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
+                //"CALL apoc.log.info('ObjectProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
                 "DELETE r', {phase:'before'});");
 
         cypher.add("CALL apoc.trigger.add('validate_literal_domain_range', " +
                 "'MATCH (n)-[r:ObjectProperty]->(m) " +
                 "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
                 "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Literal) " +
-                "CALL apoc.log.info('DatatypeProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
+                //"CALL apoc.log.info('DatatypeProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
                 "DELETE r', {phase:'before'});");
 
 /*        cypher.add("CREATE INDEX FOR (r:Resource) ON r.iri");
@@ -74,7 +77,7 @@ public class RptGeneric implements Mapper {
             String[] subjectArr;
             Resource subject = statement.getSubject();
             if (subject.isURIResource()) {
-                subjectArr = mergeResource(subject, 'a');
+                subjectArr = mergeResource(subject, 'a', model);
             } else {
                 subjectArr = mergeBlankNode(subject, 'a');
             }
@@ -82,11 +85,11 @@ public class RptGeneric implements Mapper {
             String[] objectArr;
             RDFNode object = statement.getObject();
             if (object.isURIResource()) {
-                objectArr = mergeResource((Resource) object, 'b');
+                objectArr = mergeResource((Resource) object, 'b', model);
             } else if (object.isAnon()) {
                 objectArr = mergeBlankNode((Resource) object, 'b');
             } else {
-                objectArr = mergeLiteral((Literal) object);
+                objectArr = mergeLiteral((Literal) object, model);
             }
 
             Property predicate = statement.getPredicate();
@@ -94,20 +97,20 @@ public class RptGeneric implements Mapper {
             if (object.isLiteral()) {
                 cypher.add(subjectArr[1] + "\n" +
                         objectArr[1] + "\n" +
-                        mergeDatatypeProperty(predicate, subjectArr[0], objectArr[0]));
+                        mergeDatatypeProperty(predicate, subjectArr[0], objectArr[0], model));
             } else {
                 cypher.add(subjectArr[1] + "\n" +
                         objectArr[1] + "\n" +
-                        mergeObjectProperty(predicate, subjectArr[0], objectArr[0]));
+                        mergeObjectProperty(predicate, subjectArr[0], objectArr[0], model));
             }
         }
 
-        return cypher;
+        return Helper.addNodeForNsPrefixUriDeclaration(model, cypher);
     }
 
 
-    private String[] mergeResource(Resource resource, char postfix) {
-        String iri = resource.getURI().replace("'", "_");
+    private String[] mergeResource(Resource resource, char postfix, Model model) {
+        String iri = Helper.getPrefixedName(resource.getURI(), model);
         return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Resource {iri: '" + iri + "'})"};
     }
 
@@ -116,18 +119,18 @@ public class RptGeneric implements Mapper {
         return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + id + "'})"};
     }
 
-    private String[] mergeLiteral(Literal literal) {
+    private String[] mergeLiteral(Literal literal, Model model) {
         String value = literal.getValue().toString().replace("'", "_");
-        return new String[]{"lit", "MERGE (lit" + ":Literal {value: '" + value + "', type: '" + literal.getDatatypeURI() + "'})"};
+        return new String[]{"lit", "MERGE (lit" + ":Literal {value: '" + value + "', type: '" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'})"};
     }
 
-    private String mergeDatatypeProperty(Property property, String subject, String object) {
-        return "MERGE (" + subject + ")-[:DatatypeProperty {type: '" + property.getURI() + "'}]->(" + object + ")";
+    private String mergeDatatypeProperty(Property property, String subject, String object, Model model) {
+        return "MERGE (" + subject + ")-[:DatatypeProperty {type: '" + Helper.getPrefixedName(property.getURI(), model) + "'}]->(" + object + ")";
     }
 
 
-    private String mergeObjectProperty(Property property, String subject, String object) {
-        return "MERGE (" + subject + ")-[:ObjectProperty {type: '" + property.getURI() + "'}]->(" + object + ")";
+    private String mergeObjectProperty(Property property, String subject, String object, Model model) {
+        return "MERGE (" + subject + ")-[:ObjectProperty {type: '" + Helper.getPrefixedName(property.getURI(), model) + "'}]->(" + object + ")";
 
     }
 
@@ -149,32 +152,40 @@ public class RptGeneric implements Mapper {
         results.addAll(neo4jClient.readFromNeo4j(
                 "MATCH (n:BlankNode)-[r:DatatypeProperty]->(m:Literal) RETURN n.id AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
 
+        List<Record> nsPrefixUriRecord = neo4jClient.readFromNeo4j("MATCH (n:PrefixUriNode) RETURN properties(n) as nsPrefixUri");
+
+        Map<String, Object> nsPrefixUri = nsPrefixUriRecord.getFirst().get("nsPrefixUri").asMap();
+
+        for (Map.Entry<String, Object> prefixUri : nsPrefixUri.entrySet()) {
+            model.setNsPrefix(prefixUri.getKey(), prefixUri.getValue().toString());
+        }
+
         for (Record result : results) {
             String subjectName = result.get("subjectName").asString();
             String predicateUri = result.get("predicateUri").asString();
             String objectName = result.get("objectName").asString();
 
             Resource subject;
-            Property predicate = model.createProperty(predicateUri);
+            Property predicate = model.createProperty(Helper.getUri(predicateUri, nsPrefixUri));
             RDFNode object;
 
             if (subjectName.contains("_:")) {
                 String blankNodeId = subjectName.replace("_:", "");
                 subject = model.createResource(new AnonId(blankNodeId));
             } else {
-                subject = model.createResource(subjectName);
+                subject = model.createResource(Helper.getUri(subjectName, nsPrefixUri));
             }
 
             if (Objects.equals(objectName, "null")) {
                 String literalValue = result.get("literalValue").asString();
-                String literalType = result.get("literalType").asString();
+                String literalType = Helper.getUri(result.get("literalType").asString(), nsPrefixUri);
                 object = model.createTypedLiteral(literalValue, literalType);
             } else {
                 if (objectName.contains("_:")) {
                     String blankNodeId = objectName.replace("_:", "");
                     object = model.createResource(new AnonId(blankNodeId));
                 } else {
-                    object = model.createResource(objectName);
+                    object = model.createResource(Helper.getUri(objectName, nsPrefixUri));
                 }
             }
 
