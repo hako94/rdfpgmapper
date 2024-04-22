@@ -5,10 +5,19 @@ import java.util.List;
 
 public class RDFProperty {
     private String uri;
+    private Boolean literal = false;
     private List<String> domains = new ArrayList<>();
     private List<String> ranges = new ArrayList<>();
     private List<String> subproperties = new ArrayList<>();
     private List<String> superproperties = new ArrayList<>();
+
+    public void setIsLiteral() {
+        literal = true;
+    }
+
+    public Boolean isLiteral() {
+        return literal;
+    }
 
     public RDFProperty(String uri) {
         this.uri = uri;

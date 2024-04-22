@@ -87,6 +87,9 @@ public class RDFModelBuilder {
                 graphModel.addProperty(new RDFProperty(propertyUri));
             }
             graphModel.getProperty(propertyUri).addRange(rangeUri);
+            if (rangeUri.startsWith("xsd") && !rangeUri.equalsIgnoreCase("xsd_anyuri")) {
+                graphModel.getProperty(propertyUri).setIsLiteral();
+            }
         }
 
         return graphModel;

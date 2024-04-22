@@ -47,19 +47,27 @@ public class PgtComplete implements Mapper {
         RDFGraphModel graphModel = RDFModelBuilder.buildGraphModel(model);
 
         for (RDFProperty property : graphModel.getProperties()) {
-            String domainTrigger = createDomainTrigger(property, graphModel);
-            String rangeTrigger = createRangeTrigger(property, graphModel);
-            if (domainTrigger != null) cypher.add(domainTrigger);
-            if (rangeTrigger != null) cypher.add(rangeTrigger);
+            if (!property.isLiteral()) {
+                String domainTrigger = createObjectDomainTrigger(property, graphModel);
+                String rangeTrigger = createObjectRangeTrigger(property, graphModel);
+                if (domainTrigger != null) cypher.add(domainTrigger);
+                if (rangeTrigger != null) cypher.add(rangeTrigger);
+            }
+            else {
+                String literalTrigger = createLiteralTrigger(property, graphModel);
+                if (literalTrigger != null) cypher.add(literalTrigger);
+            }
         }
 
         for (RDFClass rdfClass : graphModel.getClasses()) {
             for (String subclass : rdfClass.getSubclasses()) {
                 String triggerCypher = String.format(
-                        "CALL apoc.trigger.add('%s_superclass'," +
-                                "'MATCH (n:%s) WHERE NOT n:%s SET n:%s'," +
+                        "CALL apoc.trigger.add('superclass_%s', " +
+                                "'MATCH (n:%s) WHERE NOT n:%s " +
+                                //"CALL apoc.log.info(\\\"%s wird zu %s als Superklasse hinzugefügt.\\\") " +
+                                "SET n:%s'," +
                                 "{phase:'before'});",
-                        subclass, subclass, rdfClass.getUri(), rdfClass.getUri()
+                        subclass, subclass, rdfClass.getUri(), subclass, rdfClass.getUri(), rdfClass.getUri()
                 );
                 cypher.add(triggerCypher);
             }
@@ -68,7 +76,7 @@ public class PgtComplete implements Mapper {
         return cypher;
     }
 
-    private String createDomainTrigger(RDFProperty property, RDFGraphModel graphModel) {
+    private String createObjectDomainTrigger(RDFProperty property, RDFGraphModel graphModel) {
         List<String> domainConditions = property.getDomains().stream()
                 .map(domain -> {
                     Set<String> validClasses = new HashSet<>();
@@ -87,14 +95,16 @@ public class PgtComplete implements Mapper {
         String combinedConditions = String.join(" AND ", domainConditions);
 
         return String.format(
-                "CALL apoc.trigger.add('%s_domain', " +
-                        "'MATCH (n)-[r:%s]->(m) WHERE NOT %s DELETE r', " +
+                "CALL apoc.trigger.add('domain_%s', " +
+                        "'MATCH (n)-[r:%s]->(m) " +
+                        //"WHERE NOT %s DELETE r', " +
+                        "CALL apoc.util.validate(NOT (%s), \\\"Violation of domain constraints for %s\\\", NULL)', " +
                         "{phase:'before'});",
-                property.getUri(), property.getUri(), combinedConditions
+                property.getUri(), property.getUri(), combinedConditions, property.getUri()
         );
     }
 
-    private String createRangeTrigger(RDFProperty property, RDFGraphModel graphModel) {
+    private String createObjectRangeTrigger(RDFProperty property, RDFGraphModel graphModel) {
         List<String> rangeConditions = property.getRanges().stream()
                 .map(range -> {
                     Set<String> validClasses = new HashSet<>();
@@ -115,10 +125,12 @@ public class PgtComplete implements Mapper {
         String combinedConditions = String.join(" AND ", rangeConditions);
 
         return String.format(
-                "CALL apoc.trigger.add('%s_range', " +
-                        "'MATCH (n)-[r:%s]->(m) WHERE NOT %s DELETE r', " +
+                "CALL apoc.trigger.add('range_%s', " +
+                        "'MATCH (n)-[r:%s]->(m) " +
+                        //"WHERE NOT %s DELETE r', " +
+                        "CALL apoc.util.validate(NOT (%s), \\\"Violation of range constraints for %s\\\", NULL)', " +
                         "{phase:'before'});",
-                property.getUri(), property.getUri(), combinedConditions
+                property.getUri(), property.getUri(), combinedConditions, property.getUri()
         );
     }
 
@@ -127,6 +139,40 @@ public class PgtComplete implements Mapper {
         if (rdfClass != null && validClasses.add(cls)) {
             rdfClass.getSubclasses().forEach(subclass -> collectSubclasses(subclass, graphModel, validClasses));
         }
+    }
+
+    private String createLiteralTrigger(RDFProperty property, RDFGraphModel graphModel) {
+        List<String> domainConditions = property.getDomains().stream()
+                .map(domain -> {
+                    Set<String> validClasses = new HashSet<>();
+                    collectSubclasses(domain, graphModel, validClasses);
+                    return validClasses.stream()
+                            .map(cls -> "n:" + cls)
+                            .collect(Collectors.joining(" OR "));
+                })
+                .map(condition -> "(" + condition + ")")
+                .collect(Collectors.toList());
+
+        String domainCondition = domainConditions.isEmpty() ? "" : String.join(" AND ", domainConditions);
+
+        String rangeCondition = property.getRanges().stream()
+                .findFirst()
+                .map(range -> " AND n." + property.getUri() + " ENDS WITH \\\"" + range + "\\\"")
+                .orElse("");
+
+        if (!domainCondition.isEmpty() || !rangeCondition.isEmpty()) {
+            String conditionString = (domainCondition.isEmpty() ? "" : domainCondition) +
+                    (rangeCondition.isEmpty() ? "" : rangeCondition);
+            return String.format(
+                    "CALL apoc.trigger.add('datatype_%s_validate', " +
+                            "'MATCH (n) WHERE n.%s IS NOT NULL " +
+                            "CALL apoc.util.validate(NOT (%s), \\\"Violation of datatype constraints for %s\\\", NULL)', " +
+                            "{phase:'before'});",
+                    property.getUri(), property.getUri(), conditionString, property.getUri()
+            );
+        }
+
+        return null;
     }
 
     @Override
