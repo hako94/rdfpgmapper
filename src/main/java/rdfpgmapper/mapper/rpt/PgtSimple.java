@@ -90,19 +90,7 @@ public class PgtSimple implements Mapper {
             }
         }
 
-        if (!model.getNsPrefixMap().isEmpty()) {
-            StringBuilder prefixUri = new StringBuilder("MERGE (n:PrefixUriNode) " +
-                    "SET ");
-
-            for (Map.Entry<String, String> entry : model.getNsPrefixMap().entrySet()) {
-                prefixUri.append("n.").append(entry.getKey()).append("='").append(entry.getValue()).append("',");
-            }
-
-            prefixUri.deleteCharAt(prefixUri.length() - 1);
-            cypher.add(prefixUri.toString());
-        }
-
-        return cypher;
+        return Helper.addNodeForNsPrefixUriDeclaration(model, cypher);
     }
 
     private String mergeResourceLabel(Resource resource, Resource type, Model model) {
@@ -132,19 +120,14 @@ public class PgtSimple implements Mapper {
     }
 
     private String[] mergeResource(Resource resource, char postfix, Model model) {
-        //String iri = resource.getURI().replace("'", "_");
         return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Resource {iri: '" + Helper.getPrefixedName(resource.getURI(), model) + "'})"};
     }
 
     private String[] mergeBlankNode(Resource resource, char postfix) {
-        //String id = resource.getId().toString().replace("'", "_");
         return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + resource.getId() + "'})"};
     }
 
     private String mergeRessourceLiteral(Resource resource, Property predicate, Literal literal, Model model) {
-        //String iri = resource.getURI().replace("'", "_");
-        //String value = literal.getValue().toString().replace("'", "_");
-
         return "MERGE (res:Resource {iri: '" + Helper.getPrefixedName(resource.getURI(), model) + "'})" +
                 "SET res." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + literal.getValue() + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
     }
