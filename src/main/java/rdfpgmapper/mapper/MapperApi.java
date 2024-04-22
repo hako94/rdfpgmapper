@@ -2,7 +2,7 @@ package rdfpgmapper.mapper;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.RDFFormat;
-import rdfpgmapper.mapper.rpt.PgtComplete;
+import rdfpgmapper.mapper.rpt.pgtcomplete.PgtComplete;
 import rdfpgmapper.mapper.rpt.PgtSimple;
 import rdfpgmapper.mapper.rpt.RptGeneric;
 import rdfpgmapper.mapper.rpt.RptSimple;
@@ -66,7 +66,7 @@ public class MapperApi {
     }
 
     public void clearDatabase() {
-        neo4jClient.writeToNeo4j(List.of("CALL apoc.schema.assert({}, {})", "MATCH (n) DETACH DELETE n"));
+        neo4jClient.writeToNeo4j(List.of("CALL apoc.schema.assert({}, {})", "CALL apoc.trigger.removeAll()", "MATCH (n) DETACH DELETE n"));
     }
 
     public void close() {
