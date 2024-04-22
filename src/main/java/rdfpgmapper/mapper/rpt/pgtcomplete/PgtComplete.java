@@ -233,16 +233,18 @@ public class PgtComplete implements Mapper {
 
     private String mergeRessourceLiteral(Resource resource, Property predicate, Literal literal, Model model) {
         String types = String.valueOf(getRessourceTypes(resource, model));
+        String litValue = literal.getValue().toString().replace("'","_");
 
         return "MERGE (res:Resource" + types + " {iri: '" + Helper.getPrefixedName(resource.getURI(), model) + "'})" +
-                "SET res." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + literal.getValue() + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
+                "SET res." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
     }
 
     private String mergeBlankNodeLiteral(Resource resource, Property predicate, Literal literal, Model model) {
         String types = String.valueOf(getRessourceTypes(resource, model));
+        String litValue = literal.getValue().toString().replace("'","''");
 
         return "MERGE (b:BlankNode" + types + " {id: '_:" + resource.getId() + "'})" +
-                "SET b." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + literal.getValue() + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
+                "SET b." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
     }
 
     private String mergeProperty(Property property, String subject, String object, Model model) {
