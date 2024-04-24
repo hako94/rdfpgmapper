@@ -1,4 +1,4 @@
-package rdfpgmapper.mapper.rpt;
+package rdfpgmapper.mapper.pgt;
 
 import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Literal;

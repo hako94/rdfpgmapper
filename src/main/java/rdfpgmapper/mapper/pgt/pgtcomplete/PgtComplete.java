@@ -1,4 +1,4 @@
-package rdfpgmapper.mapper.rpt.pgtcomplete;
+package rdfpgmapper.mapper.pgt.pgtcomplete;
 
 import org.apache.jena.rdf.model.AnonId;
 import org.apache.jena.rdf.model.Literal;
@@ -12,10 +12,10 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 import org.neo4j.driver.Record;
 import rdfpgmapper.mapper.Mapper;
-import rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel.RDFClass;
-import rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel.RDFGraphModel;
-import rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel.RDFModelBuilder;
-import rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel.RDFProperty;
+import rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel.RDFClass;
+import rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel.RDFGraphModel;
+import rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel.RDFModelBuilder;
+import rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel.RDFProperty;
 import rdfpgmapper.neo4j.Neo4jClient;
 import rdfpgmapper.utils.Helper;
 

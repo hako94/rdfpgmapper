@@ -1,4 +1,4 @@
-package rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel;
+package rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;

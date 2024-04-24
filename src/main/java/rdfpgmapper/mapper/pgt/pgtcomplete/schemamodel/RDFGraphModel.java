@@ -1,8 +1,7 @@
-package rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel;
+package rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class RDFGraphModel {

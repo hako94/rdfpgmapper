@@ -2,8 +2,8 @@ package rdfpgmapper.mapper;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.RDFFormat;
-import rdfpgmapper.mapper.rpt.pgtcomplete.PgtComplete;
-import rdfpgmapper.mapper.rpt.PgtSimple;
+import rdfpgmapper.mapper.pgt.pgtcomplete.PgtComplete;
+import rdfpgmapper.mapper.pgt.PgtSimple;
 import rdfpgmapper.mapper.rpt.RptGeneric;
 import rdfpgmapper.mapper.rpt.RptSimple;
 import rdfpgmapper.neo4j.Neo4jClient;

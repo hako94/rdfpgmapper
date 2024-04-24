@@ -1,4 +1,4 @@
-package rdfpgmapper.mapper.rpt.pgtcomplete.schemamodel;
+package rdfpgmapper.mapper.pgt.pgtcomplete.schemamodel;
 
 import java.util.ArrayList;
 import java.util.List;
