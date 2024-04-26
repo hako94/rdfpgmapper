@@ -64,10 +64,23 @@ public class PgtComplete implements Mapper {
                 String triggerCypher = String.format(
                         "CALL apoc.trigger.add('superclass_%s', " +
                                 "'MATCH (n:%s) WHERE NOT n:%s " +
-                                //"CALL apoc.log.info(\\\"%s wird zu %s als Superklasse hinzugefügt.\\\") " +
                                 "SET n:%s'," +
                                 "{phase:'before'});",
-                        subclass, subclass, rdfClass.getUri(), subclass, rdfClass.getUri(), rdfClass.getUri()
+                        subclass, subclass, rdfClass.getUri(), rdfClass.getUri()
+                );
+                cypher.add(triggerCypher);
+            }
+        }
+
+        for (RDFProperty rdfProperty : graphModel.getProperties()) {
+            for (String subProperty : rdfProperty.getSubproperties()) {
+                String triggerCypher = String.format(
+                        "CALL apoc.trigger.add('superproperty_%s', " +
+                                "'MATCH (n)-[r:%s]->(m) " +
+                                "WHERE NOT (n)-[:%s]->(m) " +
+                                "MERGE (n)-[:%s]->(m)', " +
+                                "{phase:'before'});",
+                        subProperty, subProperty, rdfProperty.getUri(), rdfProperty.getUri()
                 );
                 cypher.add(triggerCypher);
             }
@@ -88,7 +101,10 @@ public class PgtComplete implements Mapper {
                 .map(condition -> "(" + condition + ")")
                 .collect(Collectors.toList());
 
-        if (domainConditions.equals("()")) {
+        domainConditions.removeIf(condition -> condition.equals("()"));
+        domainConditions.removeIf(condition -> condition.equals(""));
+
+        if (domainConditions.isEmpty()) {
             return null;
         }
 
@@ -123,6 +139,8 @@ public class PgtComplete implements Mapper {
         }
 
         String combinedConditions = String.join(" AND ", rangeConditions);
+
+        combinedConditions = (combinedConditions + " OR " + "m:BlankNode");
 
         return String.format(
                 "CALL apoc.trigger.add('range_%s', " +
@@ -259,10 +277,10 @@ public class PgtComplete implements Mapper {
             String type = Helper.getPrefixedName(typesIterator.next().asResource().getURI(), model);
             types.append(":").append(type);
         }
-        if (types.isEmpty() && resource.isAnon()) {
-            NodeIterator collectionIterator = model.listObjectsOfProperty(resource, RDF.first);
-            types = getRessourceTypes((Resource) collectionIterator.next(), model);
-        }
+//        if (types.isEmpty() && resource.isAnon()) {
+//            NodeIterator collectionIterator = model.listObjectsOfProperty(resource, RDF.first);
+//            types = getRessourceTypes((Resource) collectionIterator.next(), model);
+//        }
         return types;
     }
 
