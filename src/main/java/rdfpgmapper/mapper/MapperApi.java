@@ -68,8 +68,4 @@ public class MapperApi {
     public void clearDatabase() {
         neo4jClient.writeToNeo4j(List.of("CALL apoc.schema.assert({}, {})", "CALL apoc.trigger.removeAll()", "MATCH (n) DETACH DELETE n"));
     }
-
-    public void close() {
-        neo4jClient.close();
-    }
 }

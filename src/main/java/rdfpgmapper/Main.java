@@ -9,26 +9,29 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
 
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Mit welcher Mapping Methode möchten Sie arbeiten??");
+        Scanner scanner = new Scanner(System.in);
 
-            System.out.println("1 - RPT-Simple");
-            System.out.println("2 - RPT-Generic");
-            System.out.println("3 - PGT-Simple");
-            System.out.println("4 - PGT-Complete");
+        while (true) {
+                System.out.println("Mit welcher Mapping Methode möchten Sie arbeiten??");
 
-            int option = scanner.nextInt();
-            scanner.nextLine();
+                System.out.println("1 - RPT-Simple");
+                System.out.println("2 - RPT-Generic");
+                System.out.println("3 - PGT-Simple");
+                System.out.println("4 - PGT-Complete");
 
-            MapperApi mapperApi = new MapperApi(option);
+                int option = scanner.nextInt();
+                scanner.nextLine();
 
-            while (true) {
-                try {
+                MapperApi mapperApi = new MapperApi(option);
+
+                boolean run = true;
+                while (run) {
                     System.out.println("\nWas möchten Sie tun?");
                     System.out.println("1 - RDF-Graph importieren");
                     System.out.println("2 - RDF-Graph exportieren");
                     System.out.println("3 - Neo4j-Datenbank leeren");
-                    System.out.println("4 - Beenden");
+                    System.out.println("4 - Mapping-Strategie wechseln");
+                    System.out.println("5 - Beenden");
 
                     System.out.print("Wählen Sie eine Option: ");
 
@@ -67,22 +70,18 @@ public class Main {
 
                             break;
                         case 4:
+                            run = false;
+                            break;
+                        case 5:
                             System.out.println("Programm beendet.");
                             return;
                         default:
-                            System.out.println("Ungültige Option. Bitte wählen Sie 1, 2 oder 3.");
+                            System.out.println("Ungültige Option.");
                             break;
                     }
-                } finally {
-
-                    mapperApi.close();
-
                 }
             }
-
         }
-
-
     }
 
     private static Pair<String, String> choosePathAndFormat(Scanner scanner) {
@@ -112,5 +111,4 @@ public class Main {
 
         return new ImmutablePair<>(filePath, format);
     }
-
 }
