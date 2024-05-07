@@ -1,0 +1,123 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix ex: <http://example.org/people/> .
+
+foaf:Agent a rdfs:Class ;
+    rdfs:label "Agent" ;
+    rdfs:comment "Eine Entität, die handeln kann (eine Person, Gruppe, Software)." .
+
+foaf:Person a rdfs:Class ;
+    rdfs:label "Person" ;
+    rdfs:comment "Eine Klasse für Personen." ;
+    rdfs:subClassOf foaf:Agent .
+
+foaf:Organization a rdfs:Class ;
+    rdfs:label "Organisation" ;
+    rdfs:comment "Eine Organisationsentität." ;
+    rdfs:subClassOf foaf:Agent .
+
+foaf:Group a rdfs:Class ;
+    rdfs:label "Gruppe" ;
+    rdfs:comment "Eine Gruppe von Agenten." ;
+    rdfs:subClassOf foaf:Agent .
+
+foaf:name a rdf:Property ;
+    rdfs:label "Name" ;
+    rdfs:comment "Der vollständige Name einer Person oder Organisation." ;
+    rdfs:domain foaf:Agent ;
+    rdfs:range xsd:string .
+
+foaf:age a rdf:Property ;
+    rdfs:label "Alter" ;
+    rdfs:comment "Das Alter einer Person in Jahren." ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:int .
+
+foaf:mbox a rdf:Property ;
+    rdfs:label "Mailbox" ;
+    rdfs:comment "Die E-Mail-Adresse einer Person oder Organisation." ;
+    rdfs:domain foaf:Agent ;
+    rdfs:range xsd:anyURI .
+
+foaf:knows a rdf:Property ;
+    rdfs:label "kennt" ;
+    rdfs:comment "Eine Beziehung, durch die ein Agent eine andere Person kennt." ;
+    rdfs:domain foaf:Person ;
+    rdfs:range foaf:Person .
+	
+foaf:worksWith a rdf:Property ;
+    rdfs:label "arbeitet mit" ;
+    rdfs:comment "Eine Beziehung, durch die ein Agent mit einem anderen Agent in einem professionellen Kontext arbeitet." ;
+    rdfs:subPropertyOf foaf:knows .
+
+foaf:isFriendOf a rdf:Property ;
+    rdfs:label "ist Freund von" ;
+    rdfs:comment "Eine freundschaftliche Beziehung zwischen zwei Personen." ;
+    rdfs:subPropertyOf foaf:knows .
+
+foaf:member a rdf:Property ;
+    rdfs:label "Mitglied" ;
+    rdfs:comment "Ein Mitglied einer Gruppe oder Organisation." ;
+    rdfs:domain foaf:Agent ;
+    rdfs:range foaf:Agent .
+
+ex:knowsStatement1
+    a rdf:Statement ;
+    rdf:subject ex:person1 ;
+    rdf:predicate foaf:knows ;
+    rdf:object ex:person2 ;
+    dc:date "2024-04-01"^^xsd:date .
+
+ex:person1 foaf:knows ( ex:person2 ex:person3 ex:person5 ).
+
+ex:emailList a rdf:Seq ;
+    rdf:_1 <mailto:alice@example.org> ;
+    rdf:_2 <mailto:bob@example.org> ;
+    rdf:_3 <mailto:carol@example.org> .
+
+ex:person1
+    a foaf:Person ;
+    foaf:name "Alice" ;
+    foaf:age "30"^^xsd:int ;
+    foaf:mbox <mailto:alice@example.org> .
+
+ex:person2
+    a foaf:Person ;
+    foaf:name "Bob" ;
+    foaf:age "25"^^xsd:int ;
+    foaf:mbox <mailto:bob@example.org> ;
+	foaf:worksWith ex:person5 .
+
+ex:person3
+    a foaf:Person ;
+    foaf:name "Carol" ;
+    foaf:age "27"^^xsd:int ;
+    foaf:knows ex:person4 ;
+    foaf:mbox <mailto:carol@example.org> .
+
+ex:person4
+    a foaf:Person ;
+    foaf:name "Dave" ;
+    foaf:age "22"^^xsd:int ;
+    foaf:mbox <mailto:dave@example.org> ;
+	foaf:knows ex:person5 .
+
+ex:person5
+    a foaf:Person ;
+    foaf:name "Eve" ;
+    foaf:age "29"^^xsd:int ;
+    foaf:isFriendOf ex:person2 ;
+    foaf:mbox <mailto:eve@example.org> .
+
+ex:organization1
+    a foaf:Organization ;
+    foaf:name "ExampleCorp" ;
+    foaf:member (ex:person1 ex:person3) .
+
+ex:group1
+    a foaf:Group ;
+    foaf:name "Chess Club" ;
+    foaf:member (ex:person2 ex:person4) .

@@ -32,3 +32,5 @@ Folgende RDF-Serialisierungen werden unterstützt:
 * TTL
 * RDF/XML
 * N-TRIPLE
+
+Für das Testen wird folgender Graph empfohlen: [SimpleFOAF](./ressources/simplefoaf.ttl)
