@@ -3,7 +3,7 @@ Eine Java Applikation, um RDF Graphen in neo4j Datenbanken zu importieren und ex
 
 ## Allgemeines
 Das Projekt war Teil einer Studienarbeit an der DHBW Stuttgart - Campus Horb, welche als Forschungsfrage verfolgt hat, wie gut RDF-Graphen in Property Graphen (neo4j) abbildbar sind.
-Es wurden dabei vier verschiedene Transformationsalgorithmen verfolgt.
+Es wurden dabei vier verschiedene Transformationsalgorithmen analysiert.
  
 ## Verwendung
 ### Vorbereitung
