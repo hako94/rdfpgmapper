@@ -1,5 +1,5 @@
 # rdfpgmapper
-Eine Java Applikation, um RDF Graphen in neo4j Datenbanken zu importieren und exortieren.
+Eine Java Applikation, um RDF Graphen in neo4j Datenbanken zu importieren und exportieren.
 
 ## Allgemeines
 Das Projekt war Teil einer Studienarbeit an der DHBW Stuttgart - Campus Horb, welche als Forschungsfrage verfolgt hat, wie gut RDF-Graphen in Property Graphen (neo4j) abbildbar sind.
