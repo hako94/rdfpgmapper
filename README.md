@@ -18,7 +18,7 @@ Weiterhin muss in den Neo4j-Datenbank-Konfigurationen eine Datei *apoc.conf* mit
 ### Ausführung
 Die Anwendung kann mit folgendem Befehl als Konsolenanwendung ausgeführt werden:
 
-``$ java -jar rdfpgmapper``
+``$ java -jar rdfpgmapper.jar``
 
 Mit dem Start kann die gewünschte Mapping Variante ausgewählt werden, anschließend können RDF-Graphen importiert und exportiert, sowie die Datenbank gelöscht und das Mapping-Format gewechselt werden.
 
