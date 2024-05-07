@@ -25,19 +25,6 @@ public class Neo4jClient implements AutoCloseable{
         databasePassword = password;
     }
 
-/*    public void writeToNeo4j(List<String> cypherStatements) {
-        try (Session session = driver.session()) {
-            try (Transaction tx = session.beginTransaction()) {
-                for (String statement : cypherStatements) {
-                    tx.run(statement);
-                }
-                tx.commit();
-            } catch (Exception e) {
-                System.err.println("Ein Fehler ist aufgetreten: " + e.getMessage());
-            }
-        }
-    }*/
-
     public void writeToNeo4j(List<String> cypherStatements) {
             driver = GraphDatabase.driver(databaseUri, AuthTokens.basic(databaseUser, databasePassword));
         try (Session session = driver.session()) {
