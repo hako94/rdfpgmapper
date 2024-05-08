@@ -19,10 +19,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Eine Implementierung des {@link Mapper} Interfaces, die einfache PGT-Transformationen von RDF zu Property Graphen ermöglicht.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class PgtSimple implements Mapper {
 
     private final Neo4jClient neo4jClient;
 
+    /**
+     * Konstruktor, der den Neo4jClient initialisiert.
+     *
+     * @param client Der Client zur Kommunikation mit der Neo4j-Datenbank.
+     */
     public PgtSimple(Neo4jClient client) {
         this.neo4jClient = client;
     }
@@ -39,6 +50,13 @@ public class PgtSimple implements Mapper {
         return cypher;
     }
 
+    /**
+     * Erstellt ein Schema für Property Graphen in Neo4j, basierend auf RDF-Daten.
+     * Diese Methode generiert Cypher-Statements zur Erstellung von Constraints für Ressourcen und Blank Nodes.
+     *
+     * @param model Das RDF-Modell, aus dem das Schema erstellt wird.
+     * @return Eine Liste von Cypher-Statements, die das Schema in Neo4j definieren.
+     */
     @Override
     public List<String> mapRdfToPgInstance(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -93,6 +111,14 @@ public class PgtSimple implements Mapper {
         return Helper.addNodeForNsPrefixUriDeclaration(model, cypher);
     }
 
+    /**
+     * Konvertiert ein RDF-Modell in Cypher-Statements zur Erstellung von Instanzen in Neo4j.
+     * Diese Methode wandelt RDF-Statements in entsprechende Neo4j Graph-Strukturen um,
+     * einschließlich Ressourcen, Blank Nodes, Literale und Relationen zwischen diesen.
+     *
+     * @param model Das RDF-Modell, das in Neo4j-Instanzdaten gemappt wird.
+     * @return Eine Liste von Cypher-Statements, die die Instanzdaten in Neo4j darstellen.
+     */
     private String mergeResourceLabel(Resource resource, Resource type, Model model) {
         List<String> classHierarchy = Helper.getClassHierarchy(type, model);
 
@@ -142,6 +168,12 @@ public class PgtSimple implements Mapper {
         return "MERGE (" + subject + ")-[:" + Helper.getPrefixedName(property.getURI(), model) + "]->(" + object + ")";
     }
 
+    /**
+     * Mappt Daten aus einem Neo4j Property Graph zurück in ein RDF-Modell.
+     * Diese Methode liest Daten aus Neo4j und erstellt ein RDF-Modell, das diese Daten repräsentiert.
+     *
+     * @return Ein Jena Model, das die aus Neo4j gelesenen Daten repräsentiert.
+     */
     @Override
     public Model mapPgToRdf() {
         Model model = ModelFactory.createDefaultModel();

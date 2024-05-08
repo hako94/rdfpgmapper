@@ -19,14 +19,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Eine Implementierung des {@link Mapper} Interfaces für generisches RPT-Mapping von RDF zu Property Graphen.
+ * Diese Klasse ermöglicht die Transformation von RDF-Daten unter Verwendung von umfangreicheren und flexibleren Regeln.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class RptGeneric implements Mapper {
 
     private final Neo4jClient neo4jClient;
 
+    /**
+     * Konstruktor für RptGeneric, der eine Instanz von {@link Neo4jClient} verwendet.
+     *
+     * @param client Der Neo4jClient, der für die Interaktion mit der Neo4j-Datenbank verwendet wird.
+     */
     public RptGeneric(Neo4jClient client) {
         this.neo4jClient = client;
     }
 
+    /**
+     * Erstellt ein Schema für Property Graphen in Neo4j, basierend auf RDF-Daten.
+     * Diese Methode generiert Cypher-Statements zur Erstellung von Constraints und Triggern für Ressourcen,
+     * Blank Nodes, Literale und Eigenschaften in Neo4j.
+     *
+     * @param model Das RDF-Modell, aus dem das Schema erstellt wird.
+     * @return Eine Liste von Cypher-Statements, die das Schema in Neo4j definieren.
+     */
     @Override
     public List<String> mapRdfToPgSchema(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -43,27 +63,21 @@ public class RptGeneric implements Mapper {
         cypher.add("CREATE CONSTRAINT FOR (op:ObjectProperty) REQUIRE op.type IS UNIQUE;");
         cypher.add("CREATE CONSTRAINT FOR (dp:DatatypeProperty) REQUIRE dp.type IS UNIQUE;");
 
-        cypher.add("CALL apoc.trigger.add('validate_object_domain_range', " +
-                "'MATCH (n)-[r:DatatypeProperty]->(m) " +
-                "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
-                "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Resource OR rangeNode:BlankNode) " +
-                //"CALL apoc.log.info('ObjectProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
-                "DELETE r', {phase:'before'});");
+        cypher.add("CALL apoc.trigger.add('validate_object_domain_range', " + "'MATCH (n)-[r:DatatypeProperty]->(m) " + "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " + "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Resource OR rangeNode:BlankNode) " + "DELETE r', {phase:'before'});");
 
-        cypher.add("CALL apoc.trigger.add('validate_literal_domain_range', " +
-                "'MATCH (n)-[r:ObjectProperty]->(m) " +
-                "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " +
-                "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Literal) " +
-                //"CALL apoc.log.info('DatatypeProperty Beziehung von %s zu %s mit Typ %s abgelehnt.', domainNode.iri, rangeNode.iri, propType) " +
-                "DELETE r', {phase:'before'});");
-
-/*        cypher.add("CREATE INDEX FOR (r:Resource) ON r.iri");
-        cypher.add("CREATE INDEX FOR (b:BlankNode) ON b.id");
-        cypher.add("CREATE INDEX FOR (l:Literal) ON l.value");*/
+        cypher.add("CALL apoc.trigger.add('validate_literal_domain_range', " + "'MATCH (n)-[r:ObjectProperty]->(m) " + "WITH r, startNode(r) AS domainNode, endNode(r) AS rangeNode, r.type AS propType " + "WHERE NOT (domainNode:Resource OR domainNode:BlankNode) AND (rangeNode:Literal) " + "DELETE r', {phase:'before'});");
 
         return cypher;
     }
 
+    /**
+     * Konvertiert ein RDF-Modell in Cypher-Statements zur Erstellung von Instanzen in Neo4j.
+     * Diese Methode wandelt RDF-Statements in entsprechende Neo4j Graph-Strukturen um,
+     * einschließlich Ressourcen, Blank Nodes, Literale und Relationen zwischen diesen.
+     *
+     * @param model Das RDF-Modell, das in Neo4j-Instanzen gemappt wird.
+     * @return Eine Liste von Cypher-Statements, die die Instanzdaten in Neo4j darstellen.
+     */
     @Override
     public List<String> mapRdfToPgInstance(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -105,13 +119,9 @@ public class RptGeneric implements Mapper {
 
 
             if (object.isLiteral()) {
-                cypher.add(subjectArr[1] + "\n" +
-                        objectArr[1] + "\n" +
-                        mergeDatatypeProperty(predicate, subjectArr[0], objectArr[0], model));
+                cypher.add(subjectArr[1] + "\n" + objectArr[1] + "\n" + mergeDatatypeProperty(predicate, subjectArr[0], objectArr[0], model));
             } else {
-                cypher.add(subjectArr[1] + "\n" +
-                        objectArr[1] + "\n" +
-                        mergeObjectProperty(predicate, subjectArr[0], objectArr[0], model));
+                cypher.add(subjectArr[1] + "\n" + objectArr[1] + "\n" + mergeObjectProperty(predicate, subjectArr[0], objectArr[0], model));
             }
         }
 
@@ -121,15 +131,13 @@ public class RptGeneric implements Mapper {
     private String[] mergeResourceType(Resource resource, char postfix, Resource type, Model model) {
         String iri = Helper.getPrefixedName(resource.getURI(), model);
         String typeString = Helper.getPrefixedName(type.getURI(), model);
-        return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Resource {iri: '" + iri + "'}) " +
-                "SET res" + postfix + ".type = '" + typeString + "'"};
+        return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Resource {iri: '" + iri + "'}) " + "SET res" + postfix + ".type = '" + typeString + "'"};
     }
 
     private String[] mergeBlankNodeType(Resource resource, char postfix, Resource type, Model model) {
         String id = resource.getId().toString().replace("'", "_");
         String typeString = Helper.getPrefixedName(type.getURI(), model);
-        return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + id + "'}) " +
-                "SET b" + postfix + ".type = '" + typeString + "'"};
+        return new String[]{"b" + postfix, "MERGE (b" + postfix + ":BlankNode {id: '_:" + id + "'}) " + "SET b" + postfix + ".type = '" + typeString + "'"};
     }
 
     private String[] mergeResource(Resource resource, char postfix, Model model) {
@@ -157,23 +165,23 @@ public class RptGeneric implements Mapper {
 
     }
 
+    /**
+     * Mappt Daten aus einem Neo4j Property Graph zurück in ein RDF-Modell.
+     * Diese Methode liest Daten aus Neo4j und erstellt ein RDF-Modell, das diese Daten repräsentiert.
+     *
+     * @return Ein Jena Model, das die aus Neo4j gelesenen Daten repräsentiert.
+     */
     @Override
     public Model mapPgToRdf() {
         Model model = ModelFactory.createDefaultModel();
 
         List<Record> results = new ArrayList<>();
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:Resource)-[r:ObjectProperty]->(m:Resource) RETURN n.iri AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:Resource)-[r:ObjectProperty]->(m:BlankNode) RETURN n.iri AS subjectName, r.type AS predicateUri, m.id AS objectName"));
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:Resource)-[r:DatatypeProperty]->(m:Literal) RETURN n.iri AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:BlankNode)-[r:ObjectProperty]->(m:Resource) RETURN n.id AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:BlankNode)-[r:ObjectProperty]->(m:BlankNode) RETURN n.id AS subjectName, r.type AS predicateUri, m.id AS objectName"));
-        results.addAll(neo4jClient.readFromNeo4j(
-                "MATCH (n:BlankNode)-[r:DatatypeProperty]->(m:Literal) RETURN n.id AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:Resource)-[r:ObjectProperty]->(m:Resource) RETURN n.iri AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:Resource)-[r:ObjectProperty]->(m:BlankNode) RETURN n.iri AS subjectName, r.type AS predicateUri, m.id AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:Resource)-[r:DatatypeProperty]->(m:Literal) RETURN n.iri AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:BlankNode)-[r:ObjectProperty]->(m:Resource) RETURN n.id AS subjectName, r.type AS predicateUri, m.iri AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:BlankNode)-[r:ObjectProperty]->(m:BlankNode) RETURN n.id AS subjectName, r.type AS predicateUri, m.id AS objectName"));
+        results.addAll(neo4jClient.readFromNeo4j("MATCH (n:BlankNode)-[r:DatatypeProperty]->(m:Literal) RETURN n.id AS subjectName, r.type AS predicateUri, m.value AS literalValue, m.type AS literalType"));
 
         List<Record> nsPrefixUriRecord = neo4jClient.readFromNeo4j("MATCH (n:PrefixUriNode) RETURN properties(n) as nsPrefixUri");
 

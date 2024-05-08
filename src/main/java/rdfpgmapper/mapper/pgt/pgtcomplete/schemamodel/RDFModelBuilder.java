@@ -8,11 +8,28 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import rdfpgmapper.utils.Helper;
 
+/**
+ * Eine Hilfsklasse zur Erstellung eines RDFGraphModel aus einem Jena RDF Model.
+ * Diese Klasse verarbeitet ein RDF Model, um daraus ein strukturiertes Schema-Modell
+ * für die weitere Verarbeitung und Mapping auf Neo4j zu erstellen.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class RDFModelBuilder {
 
+    /**
+     * Erstellt ein RDFGraphModel aus einem gegebenen Jena Model. Dieses Modell umfasst
+     * die Definitionen von Klassen, Eigenschaften und deren Hierarchien und Beziehungen
+     * gemäß RDF- und RDFS-Spezifikationen.
+     *
+     * @param model Das RDF Model, aus dem das RDFGraphModel erstellt wird.
+     * @return Ein vollständig aufgebautes RDFGraphModel, das für das Mapping verwendet wird.
+     */
     public static RDFGraphModel buildGraphModel(Model model) {
         RDFGraphModel graphModel = new RDFGraphModel();
 
+        // Extraktion von RDF-Klassen und deren Hierarchien
         StmtIterator classesStatements = model.listStatements(null, RDF.type, RDFS.Class);
         while (classesStatements.hasNext()) {
             Statement stmt = classesStatements.nextStatement();
@@ -24,6 +41,7 @@ public class RDFModelBuilder {
             }
         }
 
+        // Lesen von RDF-Eigenschaften und deren Hierarchien
         StmtIterator subClassStatements = model.listStatements(null, RDFS.subClassOf, (Resource) null);
         while (subClassStatements.hasNext()) {
             Statement stmt = subClassStatements.nextStatement();
@@ -43,6 +61,7 @@ public class RDFModelBuilder {
             graphModel.getClass(subjectUri).addSuperclass(objectUri);
         }
 
+        // Lesen von Subklassen-Beziehungen
         StmtIterator propertyStatements = model.listStatements(null, RDF.type, RDF.Property);
         while (propertyStatements.hasNext()) {
             Statement stmt = propertyStatements.nextStatement();
@@ -52,6 +71,7 @@ public class RDFModelBuilder {
             }
         }
 
+        // Lesen von Subproperty-Beziehungen
         StmtIterator subPropertyStatements = model.listStatements(null, RDFS.subPropertyOf, (Resource) null);
         while (subPropertyStatements.hasNext()) {
             Statement stmt = subPropertyStatements.nextStatement();
@@ -67,6 +87,7 @@ public class RDFModelBuilder {
             graphModel.getProperty(subjectUri).addSuperproperty(objectUri);
         }
 
+        // Zuweisung von Domains zu Properties
         StmtIterator domainStatements = model.listStatements(null, RDFS.domain, (Resource) null);
         while (domainStatements.hasNext()) {
             Statement stmt = domainStatements.nextStatement();
@@ -78,6 +99,7 @@ public class RDFModelBuilder {
             graphModel.getProperty(propertyUri).addDomain(domainUri);
         }
 
+        // Zuweisung von Ranges zu Properties
         StmtIterator rangeStatements = model.listStatements(null, RDFS.range, (Resource) null);
         while (rangeStatements.hasNext()) {
             Statement stmt = rangeStatements.nextStatement();

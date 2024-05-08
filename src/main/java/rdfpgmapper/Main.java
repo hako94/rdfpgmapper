@@ -6,7 +6,24 @@ import rdfpgmapper.mapper.MapperApi;
 
 import java.util.Scanner;
 
+
+/**
+ * Hauptklasse zur Interaktion mit dem rdfpgmapper.
+ * Ermöglicht es dem Benutzer, verschiedene Mapping-Methoden auszuwählen
+ * und RDF-Graphen zu importieren oder zu exportieren sowie die Neo4j-Datenbank zu verwalten.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class Main {
+
+    /**
+     * Hauptmethode zur Ausführung der Anwendung.
+     * Erlaubt die Auswahl verschiedener Mapping-Methoden und stellt ein Menü für
+     * weitere Operationen wie Importieren, Exportieren und Löschen von Daten bereit.
+     *
+     * @param args Argumente, die von der Kommandozeile übergeben werden.
+     */
     public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
@@ -83,6 +100,13 @@ public class Main {
         }
     }
 
+    /**
+     * Hilfsmethode zur Auswahl des Pfades und Formats für den Import oder Export von RDF-Daten.
+     * Der Benutzer wird aufgefordert, Pfad und Format in einem spezifischen Format einzugeben.
+     *
+     * @param scanner Scanner-Objekt zur Eingabe der Benutzerdaten.
+     * @return Ein Pair, das den Pfad und das Format enthält oder null, falls die Eingabe ungültig ist.
+     */
     private static Pair<String, String> choosePathAndFormat(Scanner scanner) {
 
         System.out.println("Geben Sie den Pfad und das gewünschte Format folgendermaßen an: <pfad>,<format>");

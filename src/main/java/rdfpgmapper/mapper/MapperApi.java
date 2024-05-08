@@ -11,17 +11,31 @@ import rdfpgmapper.rdf.JenaClient;
 
 import java.util.List;
 
+/**
+ * Haupt-API-Klasse für das RDF-zu-Property-Graph-Mapping.
+ * Diese Klasse fungiert als Fassade zur Interaktion mit verschiedenen Mapper-Typen und
+ * steuert Import- und Exportfunktionen zwischen RDF-Modellen und Neo4j.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class MapperApi {
 
     private final Neo4jClient neo4jClient;
     private final JenaClient jenaClient;
     private final Mapper mapper;
 
+    /**
+     * Konstruktor für die MapperApi.
+     * Initialisiert die benötigten Clients und wählt den entsprechenden Mapper-Typ basierend auf der Eingabe.
+     *
+     * @param mapper Nummer des gewählten Mappers (1-4), die bestimmt, welche Mapper-Klasse verwendet wird.
+     */
     public MapperApi(int mapper) {
         neo4jClient = new Neo4jClient("bolt://localhost:7687", "neo4j", "12345678");
         jenaClient = new JenaClient();
 
-        switch (mapper){
+        switch (mapper) {
             case 1:
                 this.mapper = new RptSimple(this.neo4jClient);
                 break;
@@ -39,6 +53,12 @@ public class MapperApi {
         }
     }
 
+    /**
+     * Importiert RDF-Daten von einem gegebenen Pfad und konvertiert sie in Cypher-Befehle, die in Neo4j ausgeführt werden.
+     *
+     * @param filePath Pfad zur RDF-Datei.
+     * @param format   Format der RDF-Datei (z.B. "RDF/XML").
+     */
     public void importRdf(String filePath, String format) {
 
         Model model = jenaClient.parseRDFFile(filePath, format);
@@ -51,7 +71,12 @@ public class MapperApi {
 
     }
 
-
+    /**
+     * Exportiert Daten aus Neo4j in ein RDF-Format und speichert sie an einem angegebenen Pfad.
+     *
+     * @param filePath Pfad, an dem die RDF-Datei gespeichert werden soll.
+     * @param format   Das RDF-Format, in das exportiert werden soll (z.B. "TTL", "RDF/XML").
+     */
     public void exportRdf(String filePath, String format) {
         Model model = mapper.mapPgToRdf();
 
@@ -65,6 +90,9 @@ public class MapperApi {
         jenaClient.writeModel(model, filePath, outputFormat);
     }
 
+    /**
+     * Löscht alle Daten in der Neo4j-Datenbank.
+     */
     public void clearDatabase() {
         neo4jClient.writeToNeo4j(List.of("CALL apoc.schema.assert({}, {})", "CALL apoc.trigger.removeAll()", "MATCH (n) DETACH DELETE n"));
     }

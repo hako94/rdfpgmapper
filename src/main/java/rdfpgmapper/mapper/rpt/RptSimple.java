@@ -18,13 +18,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Eine Implementierung des {@link Mapper} Interfaces, die eine einfache RDF-zu-Property Graph
+ * RPT-Transformation durchführt. Diese Klasse nutzt einfaches Merging, um RDF-Statements in Neo4j zu speichern.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class RptSimple implements Mapper {
     private final Neo4jClient neo4jClient;
 
+    /**
+     * Konstruktor, der den Neo4jClient initialisiert.
+     *
+     * @param client Der Client zur Kommunikation mit der Neo4j-Datenbank.
+     */
     public RptSimple(Neo4jClient client) {
         this.neo4jClient = client;
     }
 
+    /**
+     * Erstellt Cypher-Statements zur Definition eines einfachen Schemas in Neo4j,
+     * das auf den Namen als Schlüssel basiert.
+     *
+     * @param model Das Jena RDF-Modell, das die RDF-Daten enthält.
+     * @return Eine Liste von Cypher-Statements, die das Neo4j Schema definieren.
+     */
     @Override
     public List<String> mapRdfToPgSchema(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -34,6 +53,13 @@ public class RptSimple implements Mapper {
         return cypher;
     }
 
+    /**
+     * Konvertiert das gegebene RDF-Modell in eine Liste von Cypher-Statements,
+     * die die RDF-Daten als Neo4j Property-Graph repräsentieren.
+     *
+     * @param model Das Jena RDF-Modell, das gemappt werden soll.
+     * @return Eine Liste von Cypher-Statements, die das Neo4j-Instanzdatenmodell darstellen.
+     */
     @Override
     public List<String> mapRdfToPgInstance(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -73,7 +99,6 @@ public class RptSimple implements Mapper {
         return Helper.addNodeForNsPrefixUriDeclaration(model, cypher);
     }
 
-
     private String[] mergeRessource(Resource resource, char postfix, Model model) {
         String iri = Helper.getPrefixedName(resource.getURI(), model);
         return new String[]{"res" + postfix, "MERGE (res" + postfix + ":Node {name: '" + iri + "'})"};
@@ -93,6 +118,11 @@ public class RptSimple implements Mapper {
         return "MERGE (" + subject + ")-[:Property {name: '" + Helper.getPrefixedName(property.getURI(), model) + "'}]->(" + object + ")";
     }
 
+    /**
+     * Mappt die in Neo4j gespeicherten Daten zurück in ein Jena RDF-Modell.
+     *
+     * @return Ein Jena Model, das die aus Neo4j gelesenen Daten repräsentiert.
+     */
     @Override
     public Model mapPgToRdf() {
         Model model = ModelFactory.createDefaultModel();
@@ -115,7 +145,7 @@ public class RptSimple implements Mapper {
             String objectName = result.get("objectName").asString();
 
             Resource subject;
-            if (!subjectName.startsWith("_")){
+            if (!subjectName.startsWith("_")) {
                 subject = model.createResource(Helper.getUri(subjectName, nsPrefixUri));
             } else {
                 subject = model.createResource(new AnonId(subjectName.replace("_:", "")));
@@ -128,7 +158,7 @@ public class RptSimple implements Mapper {
                 String[] parts = objectName.split("\\^\\^");
                 object = model.createTypedLiteral(parts[0], Helper.getUri(parts[1], nsPrefixUri));
             } else {
-                if (!objectName.startsWith("_")){
+                if (!objectName.startsWith("_")) {
                     object = model.createResource(Helper.getUri(objectName, nsPrefixUri));
                 } else {
                     object = model.createResource(new AnonId(objectName.replace("_:", "")));

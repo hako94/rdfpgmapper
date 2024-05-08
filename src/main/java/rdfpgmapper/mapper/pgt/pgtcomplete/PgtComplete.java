@@ -27,14 +27,34 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Eine Implementierung des {@link Mapper} Interfaces, die komplexe PGT-Transformationen von RDF zu Property Graphen ermöglicht.
+ * Diese Klasse unterstützt erweiterte Mapping-Strategien, einschließlich Trigger für Domain- und Range-Validierung,
+ * sowie die Behandlung von Subklassen- und Subeigenschaften-Beziehungen.
+ *
+ * @author Hannes Kollert
+ * @version 1.0
+ */
 public class PgtComplete implements Mapper {
 
     private final Neo4jClient neo4jClient;
 
+    /**
+     * Konstruktor, der den Neo4jClient initialisiert.
+     *
+     * @param client Der Client zur Kommunikation mit der Neo4j-Datenbank.
+     */
     public PgtComplete(Neo4jClient client) {
         this.neo4jClient = client;
     }
 
+    /**
+     * Erstellt ein Schema für Property Graphen in Neo4j, basierend auf RDF-Daten.
+     * Generiert Cypher-Statements für die Erstellung von Constraints und Triggern, die Datenintegrität gewährleisten.
+     *
+     * @param model Das RDF-Modell, aus dem das Schema erstellt wird.
+     * @return Eine Liste von Cypher-Statements, die das Schema in Neo4j definieren.
+     */
     @Override
     public List<String> mapRdfToPgSchema(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -52,8 +72,7 @@ public class PgtComplete implements Mapper {
                 String rangeTrigger = createObjectRangeTrigger(property, graphModel);
                 if (domainTrigger != null) cypher.add(domainTrigger);
                 if (rangeTrigger != null) cypher.add(rangeTrigger);
-            }
-            else {
+            } else {
                 String literalTrigger = createLiteralTrigger(property, graphModel);
                 if (literalTrigger != null) cypher.add(literalTrigger);
             }
@@ -61,27 +80,14 @@ public class PgtComplete implements Mapper {
 
         for (RDFClass rdfClass : graphModel.getClasses()) {
             for (String subclass : rdfClass.getSubclasses()) {
-                String triggerCypher = String.format(
-                        "CALL apoc.trigger.add('superclass_%s', " +
-                                "'MATCH (n:%s) WHERE NOT n:%s " +
-                                "SET n:%s'," +
-                                "{phase:'before'});",
-                        subclass, subclass, rdfClass.getUri(), rdfClass.getUri()
-                );
+                String triggerCypher = String.format("CALL apoc.trigger.add('superclass_%s', " + "'MATCH (n:%s) WHERE NOT n:%s " + "SET n:%s'," + "{phase:'before'});", subclass, subclass, rdfClass.getUri(), rdfClass.getUri());
                 cypher.add(triggerCypher);
             }
         }
 
         for (RDFProperty rdfProperty : graphModel.getProperties()) {
             for (String subProperty : rdfProperty.getSubproperties()) {
-                String triggerCypher = String.format(
-                        "CALL apoc.trigger.add('superproperty_%s', " +
-                                "'MATCH (n)-[r:%s]->(m) " +
-                                "WHERE NOT (n)-[:%s]->(m) " +
-                                "MERGE (n)-[:%s]->(m)', " +
-                                "{phase:'before'});",
-                        subProperty, subProperty, rdfProperty.getUri(), rdfProperty.getUri()
-                );
+                String triggerCypher = String.format("CALL apoc.trigger.add('superproperty_%s', " + "'MATCH (n)-[r:%s]->(m) " + "WHERE NOT (n)-[:%s]->(m) " + "MERGE (n)-[:%s]->(m)', " + "{phase:'before'});", subProperty, subProperty, rdfProperty.getUri(), rdfProperty.getUri());
                 cypher.add(triggerCypher);
             }
         }
@@ -90,16 +96,11 @@ public class PgtComplete implements Mapper {
     }
 
     private String createObjectDomainTrigger(RDFProperty property, RDFGraphModel graphModel) {
-        List<String> domainConditions = property.getDomains().stream()
-                .map(domain -> {
-                    Set<String> validClasses = new HashSet<>();
-                    collectSubclasses(domain, graphModel, validClasses);
-                    return validClasses.stream()
-                            .map(cls -> "n:" + cls)
-                            .collect(Collectors.joining(" OR "));
-                })
-                .map(condition -> "(" + condition + ")")
-                .collect(Collectors.toList());
+        List<String> domainConditions = property.getDomains().stream().map(domain -> {
+            Set<String> validClasses = new HashSet<>();
+            collectSubclasses(domain, graphModel, validClasses);
+            return validClasses.stream().map(cls -> "n:" + cls).collect(Collectors.joining(" OR "));
+        }).map(condition -> "(" + condition + ")").collect(Collectors.toList());
 
         domainConditions.removeIf(condition -> condition.equals("()"));
         domainConditions.removeIf(condition -> condition.equals(""));
@@ -110,27 +111,17 @@ public class PgtComplete implements Mapper {
 
         String combinedConditions = String.join(" AND ", domainConditions);
 
-        return String.format(
-                "CALL apoc.trigger.add('domain_%s', " +
-                        "'MATCH (n)-[r:%s]->(m) " +
-                        //"WHERE NOT %s DELETE r', " +
-                        "CALL apoc.util.validate(NOT (%s), \\\"Violation of domain constraints for %s\\\", NULL)', " +
-                        "{phase:'before'});",
-                property.getUri(), property.getUri(), combinedConditions, property.getUri()
-        );
+        return String.format("CALL apoc.trigger.add('domain_%s', " + "'MATCH (n)-[r:%s]->(m) " +
+                //"WHERE NOT %s DELETE r', " +
+                "CALL apoc.util.validate(NOT (%s), \\\"Violation of domain constraints for %s\\\", NULL)', " + "{phase:'before'});", property.getUri(), property.getUri(), combinedConditions, property.getUri());
     }
 
     private String createObjectRangeTrigger(RDFProperty property, RDFGraphModel graphModel) {
-        List<String> rangeConditions = property.getRanges().stream()
-                .map(range -> {
-                    Set<String> validClasses = new HashSet<>();
-                    collectSubclasses(range, graphModel, validClasses);
-                    return validClasses.stream()
-                            .map(cls -> "m:" + cls)
-                            .collect(Collectors.joining(" OR "));
-                })
-                .map(condition -> "(" + condition + ")")
-                .collect(Collectors.toList());
+        List<String> rangeConditions = property.getRanges().stream().map(range -> {
+            Set<String> validClasses = new HashSet<>();
+            collectSubclasses(range, graphModel, validClasses);
+            return validClasses.stream().map(cls -> "m:" + cls).collect(Collectors.joining(" OR "));
+        }).map(condition -> "(" + condition + ")").collect(Collectors.toList());
 
         rangeConditions.removeIf(condition -> condition.equals("()"));
 
@@ -142,14 +133,9 @@ public class PgtComplete implements Mapper {
 
         combinedConditions = (combinedConditions + " OR " + "m:BlankNode");
 
-        return String.format(
-                "CALL apoc.trigger.add('range_%s', " +
-                        "'MATCH (n)-[r:%s]->(m) " +
-                        //"WHERE NOT %s DELETE r', " +
-                        "CALL apoc.util.validate(NOT (%s), \\\"Violation of range constraints for %s\\\", NULL)', " +
-                        "{phase:'before'});",
-                property.getUri(), property.getUri(), combinedConditions, property.getUri()
-        );
+        return String.format("CALL apoc.trigger.add('range_%s', " + "'MATCH (n)-[r:%s]->(m) " +
+                //"WHERE NOT %s DELETE r', " +
+                "CALL apoc.util.validate(NOT (%s), \\\"Violation of range constraints for %s\\\", NULL)', " + "{phase:'before'});", property.getUri(), property.getUri(), combinedConditions, property.getUri());
     }
 
     private void collectSubclasses(String cls, RDFGraphModel graphModel, Set<String> validClasses) {
@@ -160,39 +146,31 @@ public class PgtComplete implements Mapper {
     }
 
     private String createLiteralTrigger(RDFProperty property, RDFGraphModel graphModel) {
-        List<String> domainConditions = property.getDomains().stream()
-                .map(domain -> {
-                    Set<String> validClasses = new HashSet<>();
-                    collectSubclasses(domain, graphModel, validClasses);
-                    return validClasses.stream()
-                            .map(cls -> "n:" + cls)
-                            .collect(Collectors.joining(" OR "));
-                })
-                .map(condition -> "(" + condition + ")")
-                .collect(Collectors.toList());
+        List<String> domainConditions = property.getDomains().stream().map(domain -> {
+            Set<String> validClasses = new HashSet<>();
+            collectSubclasses(domain, graphModel, validClasses);
+            return validClasses.stream().map(cls -> "n:" + cls).collect(Collectors.joining(" OR "));
+        }).map(condition -> "(" + condition + ")").collect(Collectors.toList());
 
         String domainCondition = domainConditions.isEmpty() ? "" : String.join(" AND ", domainConditions);
 
-        String rangeCondition = property.getRanges().stream()
-                .findFirst()
-                .map(range -> " AND n." + property.getUri() + " ENDS WITH \\\"" + range + "\\\"")
-                .orElse("");
+        String rangeCondition = property.getRanges().stream().findFirst().map(range -> " AND n." + property.getUri() + " ENDS WITH \\\"" + range + "\\\"").orElse("");
 
         if (!domainCondition.isEmpty() || !rangeCondition.isEmpty()) {
-            String conditionString = (domainCondition.isEmpty() ? "" : domainCondition) +
-                    (rangeCondition.isEmpty() ? "" : rangeCondition);
-            return String.format(
-                    "CALL apoc.trigger.add('datatype_%s_validate', " +
-                            "'MATCH (n) WHERE n.%s IS NOT NULL " +
-                            "CALL apoc.util.validate(NOT (%s), \\\"Violation of datatype constraints for %s\\\", NULL)', " +
-                            "{phase:'before'});",
-                    property.getUri(), property.getUri(), conditionString, property.getUri()
-            );
+            String conditionString = (domainCondition.isEmpty() ? "" : domainCondition) + (rangeCondition.isEmpty() ? "" : rangeCondition);
+            return String.format("CALL apoc.trigger.add('datatype_%s_validate', " + "'MATCH (n) WHERE n.%s IS NOT NULL " + "CALL apoc.util.validate(NOT (%s), \\\"Violation of datatype constraints for %s\\\", NULL)', " + "{phase:'before'});", property.getUri(), property.getUri(), conditionString, property.getUri());
         }
 
         return null;
     }
 
+    /**
+     * Konvertiert ein RDF-Modell in Cypher-Statements zur Erstellung von Instanzen in Neo4j.
+     * Wandelt RDF-Statements in entsprechende Neo4j Graph-Strukturen um, einschließlich Ressourcen, Blank Nodes, Literale und Relationen.
+     *
+     * @param model Das RDF-Modell, das in Neo4j-Instanzdaten gemappt wird.
+     * @return Eine Liste von Cypher-Statements, die die Instanzdaten in Neo4j darstellen.
+     */
     @Override
     public List<String> mapRdfToPgInstance(Model model) {
         List<String> cypher = new ArrayList<>();
@@ -229,9 +207,7 @@ public class PgtComplete implements Mapper {
                     objectArr = mergeBlankNode((Resource) object, 'b', model);
                 }
 
-                cypher.add(subjectArr[1] + "\n" +
-                        objectArr[1] + "\n" +
-                        mergeProperty(predicate, subjectArr[0], objectArr[0], model));
+                cypher.add(subjectArr[1] + "\n" + objectArr[1] + "\n" + mergeProperty(predicate, subjectArr[0], objectArr[0], model));
 
             }
         }
@@ -251,18 +227,16 @@ public class PgtComplete implements Mapper {
 
     private String mergeRessourceLiteral(Resource resource, Property predicate, Literal literal, Model model) {
         String types = String.valueOf(getRessourceTypes(resource, model));
-        String litValue = literal.getValue().toString().replace("'","_");
+        String litValue = literal.getValue().toString().replace("'", "_");
 
-        return "MERGE (res:Resource" + types + " {iri: '" + Helper.getPrefixedName(resource.getURI(), model) + "'})" +
-                "SET res." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
+        return "MERGE (res:Resource" + types + " {iri: '" + Helper.getPrefixedName(resource.getURI(), model) + "'})" + "SET res." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
     }
 
     private String mergeBlankNodeLiteral(Resource resource, Property predicate, Literal literal, Model model) {
         String types = String.valueOf(getRessourceTypes(resource, model));
-        String litValue = literal.getValue().toString().replace("'","''");
+        String litValue = literal.getValue().toString().replace("'", "''");
 
-        return "MERGE (b:BlankNode" + types + " {id: '_:" + resource.getId() + "'})" +
-                "SET b." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
+        return "MERGE (b:BlankNode" + types + " {id: '_:" + resource.getId() + "'})" + "SET b." + Helper.getPrefixedName(predicate.getURI(), model) + " = '" + litValue + "^^" + Helper.getPrefixedName(literal.getDatatypeURI(), model) + "'";
     }
 
     private String mergeProperty(Property property, String subject, String object, Model model) {
@@ -277,24 +251,21 @@ public class PgtComplete implements Mapper {
             String type = Helper.getPrefixedName(typesIterator.next().asResource().getURI(), model);
             types.append(":").append(type);
         }
-//        if (types.isEmpty() && resource.isAnon()) {
-//            NodeIterator collectionIterator = model.listObjectsOfProperty(resource, RDF.first);
-//            types = getRessourceTypes((Resource) collectionIterator.next(), model);
-//        }
         return types;
     }
 
+    /**
+     * Mappt Daten aus einem Neo4j Property Graph zurück in ein RDF-Modell.
+     * Liest Daten aus Neo4j und erstellt ein RDF-Modell, das diese Daten repräsentiert.
+     *
+     * @return Ein Jena Model, das die aus Neo4j gelesenen Daten repräsentiert.
+     */
     @Override
     public Model mapPgToRdf() {
         Model model = ModelFactory.createDefaultModel();
 
 
-        List<Record> results = neo4jClient.readFromNeo4j(
-                "MATCH (n)-[r]->(m) " +
-                        "RETURN n.iri AS subjectIri, n.id AS subjectId, properties(n) as subjectProperties, " +
-                        "TYPE(r) AS predicateUri, " +
-                        "m.iri AS objectIri, m.id AS objectId, properties(m) as objectProperties"
-        );
+        List<Record> results = neo4jClient.readFromNeo4j("MATCH (n)-[r]->(m) " + "RETURN n.iri AS subjectIri, n.id AS subjectId, properties(n) as subjectProperties, " + "TYPE(r) AS predicateUri, " + "m.iri AS objectIri, m.id AS objectId, properties(m) as objectProperties");
 
         List<Record> nsPrefixUriRecord = neo4jClient.readFromNeo4j("MATCH (n:PrefixUriNode) RETURN properties(n) as nsPrefixUri");
 
