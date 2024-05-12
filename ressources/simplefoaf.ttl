@@ -7,60 +7,60 @@
 
 foaf:Agent a rdfs:Class ;
     rdfs:label "Agent" ;
-    rdfs:comment "Eine Entität, die handeln kann (eine Person, Gruppe, Software)." .
+    rdfs:comment "An agent (eg. person, group, software or physical artifact)." .
 
 foaf:Person a rdfs:Class ;
     rdfs:label "Person" ;
-    rdfs:comment "Eine Klasse für Personen." ;
+    rdfs:comment "A person." ;
     rdfs:subClassOf foaf:Agent .
 
 foaf:Organization a rdfs:Class ;
-    rdfs:label "Organisation" ;
-    rdfs:comment "Eine Organisationsentität." ;
+    rdfs:label "Organization" ;
+    rdfs:comment "An organization." ;
     rdfs:subClassOf foaf:Agent .
 
 foaf:Group a rdfs:Class ;
-    rdfs:label "Gruppe" ;
-    rdfs:comment "Eine Gruppe von Agenten." ;
+    rdfs:label "Group" ;
+    rdfs:comment "A class of Agents." ;
     rdfs:subClassOf foaf:Agent .
 
 foaf:name a rdf:Property ;
     rdfs:label "Name" ;
-    rdfs:comment "Der vollständige Name einer Person oder Organisation." ;
+    rdfs:comment "A name for some thing." ;
     rdfs:domain foaf:Agent ;
     rdfs:range xsd:string .
 
 foaf:age a rdf:Property ;
-    rdfs:label "Alter" ;
-    rdfs:comment "Das Alter einer Person in Jahren." ;
+    rdfs:label "age" ;
+    rdfs:comment "The age in years of some person." ;
     rdfs:domain foaf:Person ;
     rdfs:range xsd:int .
 
 foaf:mbox a rdf:Property ;
-    rdfs:label "Mailbox" ;
-    rdfs:comment "Die E-Mail-Adresse einer Person oder Organisation." ;
+    rdfs:label "personal mailbox" ;
+    rdfs:comment "A personal mailbox, ie. an Internet mailbox associated with exactly one owner, the first owner of this mailbox. This is a 'static inverse functional property', in that there is (across time and change) at most one individual that ever has any particular value for foaf:mbox." ;
     rdfs:domain foaf:Agent ;
     rdfs:range xsd:anyURI .
 
 foaf:knows a rdf:Property ;
-    rdfs:label "kennt" ;
-    rdfs:comment "Eine Beziehung, durch die ein Agent eine andere Person kennt." ;
+    rdfs:label "knows" ;
+    rdfs:comment "A person known by this person (indicating some level of reciprocated interaction between the parties)." ;
     rdfs:domain foaf:Person ;
     rdfs:range foaf:Person .
 	
 foaf:worksWith a rdf:Property ;
-    rdfs:label "arbeitet mit" ;
-    rdfs:comment "Eine Beziehung, durch die ein Agent mit einem anderen Agent in einem professionellen Kontext arbeitet." ;
+    rdfs:label "works with" ;
+    rdfs:comment "A person working with another person." ;
     rdfs:subPropertyOf foaf:knows .
 
 foaf:isFriendOf a rdf:Property ;
-    rdfs:label "ist Freund von" ;
-    rdfs:comment "Eine freundschaftliche Beziehung zwischen zwei Personen." ;
+    rdfs:label "friend of" ;
+    rdfs:comment "A person being friends with another person." ;
     rdfs:subPropertyOf foaf:knows .
 
 foaf:member a rdf:Property ;
-    rdfs:label "Mitglied" ;
-    rdfs:comment "Ein Mitglied einer Gruppe oder Organisation." ;
+    rdfs:label "member" ;
+    rdfs:comment "Indicates a member of a Group" ;
     rdfs:domain foaf:Agent ;
     rdfs:range foaf:Agent .
 
@@ -114,10 +114,10 @@ ex:person5
 
 ex:organization1
     a foaf:Organization ;
-    foaf:name "ExampleCorp" ;
+    foaf:name "ExampleOrg" ;
     foaf:member (ex:person1 ex:person3) .
 
 ex:group1
     a foaf:Group ;
-    foaf:name "Chess Club" ;
+    foaf:name "DHBWCourse" ;
     foaf:member (ex:person2 ex:person4) .
